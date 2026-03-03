@@ -21,14 +21,15 @@ WHAT YOU NEED TO CUSTOMIZE:
     3. Update the model paths if you changed them
     4. Customize the styling if desired
 
-Author: [Your Name]  # <-- UPDATE THIS!
-Dataset: [Your Dataset]  # <-- UPDATE THIS!
+Author: Wesley Houk
+Dataset: crop_yield_dataset.csv
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import os
 from pathlib import Path
 
 # =============================================================================
@@ -36,7 +37,7 @@ from pathlib import Path
 # =============================================================================
 # This must be the first Streamlit command!
 st.set_page_config(
-    page_title="ML Prediction App",  # TODO: Update with your project name
+    page_title="Crop Yield Predictor",  # TODO: Update with your project name
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -114,15 +115,15 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### About")
 st.sidebar.info(
     """
-    This app deploys machine learning models trained on [YOUR DATASET].
+    This app deploys machine learning models trained on crop_yield_dataset.csv.
 
-    - **Regression**: Predicts [YOUR TARGET]
-    - **Classification**: Predicts [YOUR CATEGORIES]
+    - **Regression**: Predicts Crop Yield - Ton/Hectare
+    - **Classification**: Predicts low, medium or high yield
     """
 )
 # TODO: UPDATE YOUR NAME HERE! This shows visitors who built this app.
-st.sidebar.markdown("**Built by:** [YOUR NAME]")
-st.sidebar.markdown("[GitHub Repo](https://github.com/YOUR-USERNAME/YOUR-REPO)")
+st.sidebar.markdown("**Built by:** Wesley Houk")
+st.sidebar.markdown("[GitHub Repo](https://github.com/wesleyhouk-gif/crop-yield-predictor.git)")
 
 
 # =============================================================================
@@ -149,20 +150,21 @@ if page == "🏠 Home":
     st.markdown("### About This Project")
     st.write(
         """
-        **Dataset:** [Describe your dataset]
+        **Dataset:** This dataset contains agricultural data for 1,000,000 samples aimed at predicting crop yield (in tons per hectare) based on various factors. The dataset can be used for regression tasks in machine learning, especially for predicting crop productivity.
 
-        **Problem Statement:** [What are you predicting and why?]
+        **Problem Statement:** I am trying to predict the crop yield in tons per hectare. This is very important for farmers. An increase in yeild for them is important for many reasons whether they are trying to grow food for their families, their animals, or just trying to turn a profit. With this information they can plan on what they need to grow based off of their climate, how much fertilizer they need to use, irrigation needed, planting density etc. 
 
         **Models Used:**
-        - Regression: [Your regression model type]
-        - Classification: [Your classification model type]
+        - Regression: Lasso Regression Model
+        - Classification: Logistic Regression Model
         """
     )
 
     # Show a sample of your data or an image (optional)
     # st.image("path/to/image.png", caption="Sample visualization")
-
-
+    img_path = Path(__file__).parent / "data.PNG"   # if data.PNG is in the same folder as app.py
+    st.image(str(img_path), caption="Sample visualization")
+    
 # =============================================================================
 # REGRESSION PAGE
 # =============================================================================
@@ -194,16 +196,22 @@ elif page == "📈 Regression Model":
 
     input_values = {}
 
-    for i, feature in enumerate(features):
-        # Alternate between columns
-        with col1 if i % 2 == 0 else col2:
-            # TODO: Customize each input based on your feature type and range
-            # Example: For a feature like 'bedrooms' you might use:
-            # input_values[feature] = st.number_input(feature, min_value=0, max_value=10, value=3)
+    feature_config = {
+        "Rainfall_mm": (200.0, 1499.7, 800.00),
+        "Humidity_pct": (30.0, 90.0, 60.00),
+        "Temperature_C": (15.0, 35.0, 25.00),
+        "Fertilizer_Used_kg": (50.0, 300.0, 175.00)
+    }
 
-            input_values[feature] = st.number_input(
+    for i, feature in enumerate(features):
+        with col1 if i % 2 == 0 else col2:
+            min_val, max_val, default = feature_config[feature]
+
+            input_values[feature] = st.slider(
                 label=feature,
-                value=0.0,  # Default value - UPDATE THIS
+                min_value=min_val,
+                max_value=max_val,
+                value=default,
                 help=f"Enter value for {feature}"
             )
 
@@ -221,7 +229,7 @@ elif page == "📈 Regression Model":
         st.success(f"### Predicted Value: {prediction:,.2f}")
 
         # TODO: Add context to your prediction
-        # st.write(f"This means... [interpretation]")
+        st.write(f"This is the predicted crop yield in tons per hectare based on these inputs")
 
         # Show input summary
         with st.expander("View Input Summary"):
@@ -272,12 +280,22 @@ elif page == "🏷️ Classification Model":
 
     input_values = {}
 
+    feature_config = {
+        "Rainfall_mm": (200.0, 1499.7, 800.00),
+        "Humidity_pct": (30.0, 90.0, 60.00),
+        "Temperature_C": (15.0, 35.0, 25.00),
+        "Fertilizer_Used_kg": (50.0, 300.0, 175.00)
+    }
+
     for i, feature in enumerate(features):
         with col1 if i % 2 == 0 else col2:
-            # TODO: Customize each input based on your feature type and range
-            input_values[feature] = st.number_input(
+            min_val, max_val, default = feature_config[feature]
+
+            input_values[feature] = st.slider(
                 label=feature,
-                value=0.0,
+                min_value=min_val,
+                max_value=max_val,
+                value=default,
                 key=f"class_{feature}",  # Unique key for classification inputs
                 help=f"Enter value for {feature}"
             )
@@ -304,7 +322,7 @@ elif page == "🏷️ Classification Model":
         st.success(f"### Predicted Category: {emoji} {predicted_label}")
 
         # TODO: Add interpretation
-        # st.write(f"This means... [interpretation]")
+        st.write(f"If it is a bad yield predicted the model will show low. If it is a medium, or average yeild then the model will predict medium. If it is a really good yield then the model will predict high.")
 
         # Show input summary
         with st.expander("View Input Summary"):
@@ -318,7 +336,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray;'>
-        Built by [YOUR NAME] | Full Stack Academy AI & ML Bootcamp
+        Built by Wesley Houk | Full Stack Academy AI & ML Bootcamp
     </div>
     """,
     unsafe_allow_html=True
